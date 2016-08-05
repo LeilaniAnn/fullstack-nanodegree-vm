@@ -8,20 +8,34 @@ import psycopg2
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
+
     return psycopg2.connect("dbname=tournament")
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
-
+    DB = connect()
+    c = DB.cursor()
+    c.execute("DELETE FROM matches")
+    DB.commit()
+    DB.close()
 
 def deletePlayers():
     """Remove all the player records from the database."""
-
+    DB = connect()
+    c = DB.cursor()
+    c.execute("DELETE FROM players")
+    DB.commit()
+    DB.close()
 
 def countPlayers():
     """Returns the number of players currently registered."""
-
+    DB = connect()
+    c = DB.cursor()
+    c.execute("SELECT count(*) FROM players")
+    count = c.fetchall()[0][0]
+    DB.close()
+    return count
 
 def registerPlayer(name):
     """Adds a player to the tournament database.
@@ -32,6 +46,11 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
+    DB = connect()
+    c = DB.cursor()
+    c.execute("INSERT INTO players (name) VALUES (%s)", (name,))
+    DB.commit()
+    DB.close()
 
 
 def playerStandings():
@@ -47,7 +66,14 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-
+    # use views so we don't need to create a new table
+    # static query 
+    DB = connect()
+    c = DB.cursor()
+    c.execute("SELECT * FROM standings;")
+    standings = c.fetchall()
+    DB.close()
+    return standings
 
 def reportMatch(winner, loser):
     """Records the outcome of a single match between two players.
@@ -56,8 +82,11 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
- 
- 
+    DB = connect()
+    c = DB.cursor()
+    c.execute("INSERT INTO matches VALUES (%s, %s);", (winner,loser))
+    DB.commit()
+    DB.close()
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
   
@@ -73,5 +102,21 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-
+    DB = connect()
+    c = DB.cursor()
+    c.execute("SELECT * FROM standings")
+    swiss_pair = c.fetchall()
+    DB.close()
+    pairings = []
+    i = 0
+    while i < len(swiss_pair):
+        pairings.append(
+            (
+                swiss_pair[i][0], 
+                swiss_pair[i][1], 
+                swiss_pair[i + 1][0], 
+                swiss_pair[i + 1][1])
+            )
+        i += 2
+    return pairings
 
