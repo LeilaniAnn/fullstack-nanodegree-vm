@@ -1,41 +1,38 @@
-
--- connect to the database
+-- Connect to the database after dropping
 DROP DATABASE tournament;
 CREATE DATABASE tournament;
 \c tournament
 
 
--- Drops all views and tables inside the database tournament in case
--- they already exist. If not it will skip over this task
+-- Drops all views and tables inside db
+
 DROP VIEW IF EXISTS standings;
 DROP VIEW IF EXISTS wins;
 DROP VIEW IF EXISTS losses;
 DROP TABLE IF EXISTS matches;
 DROP TABLE IF EXISTS players;
 
--- Creates the needed tables and columns
+-- Create Table
 CREATE TABLE players (id SERIAL primary key, name TEXT);
 CREATE TABLE matches (winner INT references players(id), 
 					 loser INT references players(id));
 
--- Creates the view wins, which returns the players id, name, 
--- and number of wins that they have
+-- Creating Views to simplify repetitive queries
+-- Left join allows players to show up even with 0 matches
 CREATE VIEW wins AS
 	SELECT players.id, players.name, count(matches.winner) AS wins
 	FROM players
 		LEFT JOIN matches ON players.id = matches.winner
 	GROUP BY players.id, players.name;
 
--- Creates the view losses, which returns the players id, name, 
--- and number of losses that they have
 CREATE VIEW losses AS
 	SELECT players.id, players.name, count(matches.loser) AS losses
 	FROM players
 		LEFT JOIN matches ON players.id = matches.loser
 	GROUP BY players.id, players.name;
 
--- Creates the view standings, which returns the players id, name, 
--- number of wins that they have, and the number of matches they've played in
+-- Player standings row 
+-- [(id1, name1, wins1, matches1), (id2, name2, wins2, matches2)] = standings
 CREATE VIEW standings AS
 	SELECT players.id, players.name, wins.wins, 
 	wins.wins + losses.losses AS matches
